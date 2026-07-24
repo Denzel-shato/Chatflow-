@@ -1,0 +1,12 @@
+:root{
+    --dark:#3f3a36;
+    --green:#87c498;
+    --murky:#ddd1a9;
+    --darker:#4d4b4b;
+}
+li{
+    margin-top: 20px;
+}
+hr{
+    border: 1px solid white;
+}

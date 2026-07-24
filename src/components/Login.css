@@ -1,0 +1,76 @@
+:root{
+    --dark:#3f3a36;
+    --green:#87c498;
+    --murky:#ddd1a9;
+    --darker:#4d4b4b;
+}
+
+#login_opt{
+    height: 93%;
+
+    background-color: var(--dark);
+    border-radius: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+}
+#sign_opt{
+    height: 93%;
+    background-color:  var(--dark);
+    margin-left: 5px;
+    border-radius: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+}
+.logo-container{
+    width: 100%;
+    height: 25%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 10px;
+}
+#title{
+    text-align: center;
+}
+.btn{
+    height: 35px;
+    width: 70px;
+    color: white;
+    font-size: 20px;
+    border-left: 3px solid white;
+    border-bottom: 5px solid white;
+    font-weight: bold;
+    border-radius: 10px;
+ }
+#sign-up{
+    min-height: 35px;
+    min-width: 70px;
+    color: white;
+    font-size: 20px;
+    border-left: 3px solid white;
+    border-bottom: 5px solid white;
+    font-weight: bold;
+}
+
+#sign-up:active{
+   
+    border-left: 1px solid green;
+    border-bottom: 2px solid green;
+}
+.btn:active{
+   
+    border-left: 1px solid green;
+    border-bottom: 2px solid green;
+}
+#signup_form{
+    display: none;
+}
+#signup_username,#signup_password{
+height: 26px;
+border-radius: 20px;
+text-align: center;
+}
