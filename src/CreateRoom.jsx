@@ -326,8 +326,10 @@ const CreateRoom = ({
           });
         });
 
+        const idToken = await auth.currentUser.getIdToken();
         const tokenRes = await fetch(
-          `https://agora-token-server-y71i.onrender.com/token?channelName=${roomID}&uid=0`
+          `https://agora-token-server-y71i.onrender.com/token?channelName=${roomID}`,
+          { headers: { Authorization: `Bearer ${idToken}` } }
         );
         const { token } = await tokenRes.json();
 
