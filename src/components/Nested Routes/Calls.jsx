@@ -80,32 +80,36 @@ export default function Calls() {
 
     const q = query(
       collection(db, "CallHistory"),
-      where("participants", "array-contains", user.uid),
+      where("participants", "array-contains", user.uid),where("forUserId", "==", user.uid),
       orderBy("timestamp", "desc")
     );
 
-    const unsub = onSnapshot(q, async (snap) => {
-      const results = await Promise.all(
-        snap.docs.map(async (d) => {
-          const data = { id: d.id, ...d.data() };
-          const otherUID =
-            data.participants?.find((id) => id !== user.uid) ?? data.callerID;
+    const unsub = onSnapshot(
+      q,
+      async (snap) => {
+        const results = await Promise.all(
+          snap.docs.map(async (d) => {
+            const data = { id: d.id, ...d.data() };
+            const otherUID =
+              data.participants?.find((id) => id !== user.uid) ?? data.callerID;
 
-          if (otherUID) {
-            try {
-              const otherSnap = await getDoc(doc(db, "Users", otherUID));
-              if (otherSnap.exists()) {
-                data.otherUser = otherSnap.data();
-              }
-            } catch (_) {}
-          }
-          return data;
-        })
-      );
+            if (otherUID) {
+              try {
+                const otherSnap = await getDoc(doc(db, "Users", otherUID));
+                if (otherSnap.exists()) {
+                  data.otherUser = otherSnap.data();
+                }
+              } catch (_) {}
+            }
+            return data;
+          })
+        );
 
-      setCalls(results);
-      setLoading(false);
-    });
+        setCalls(results);
+        setLoading(false);
+      },
+      (err) => console.error( err.code)
+    );
 
     return () => unsub();
   }, [user]);

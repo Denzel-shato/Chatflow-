@@ -12,7 +12,7 @@ import SignUp from './components/SignUp'
 import Chat from './components/Chat'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import { getDatabase, onDisconnect, onValue, ref, set, serverTimestamp } from 'firebase/database'
-import { doc, onSnapshot, updateDoc, collection } from 'firebase/firestore'
+import { doc, onSnapshot, updateDoc, collection, query, where } from 'firebase/firestore'
 import { db } from './Firebase/firebase'
 import VideoCall from './CreateRoom'
 import MyCall from './components/MyCall'
@@ -83,63 +83,78 @@ function App() {
   //   2. Reset UI on any terminal status (missed/declined/cancelled/ended)
   // It does NOT write anything to Firestore — each status is written by its actor.
   useEffect(() => {
-    if (!user) return
-    const unsub = onSnapshot(collection(db, 'Calls'), (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        if (change.type !== 'added' && change.type !== 'modified') return
-        const data = change.doc.data()
+    if (!user) return;
 
-        // Someone is calling YOU
-        if (
-          data.callerId !== user &&
-          data.status   === 'calling' &&
-          change.doc.id.includes(user)
-        ) {
-          setIncomingCall({ ...data, chatRoomId: change.doc.id } as IncomingCall)
-        }
+    const q = query(collection(db, "Calls"), where("calleeId", "==", user));
 
-        // Any terminal status on a call involving you → reset all UI state
-        if (
-          change.doc.id.includes(user) &&
-          ['missed', 'declined', 'cancelled', 'ended'].includes(data.status)
-        ) {
-          setIncomingCall(null)
-          setInCall(false)
-          setMyCall(false)
-          setCalleeInfo(null)
-        }
-      })
-    })
-    return () => unsub()
-  }, [user])
+    const unsub = onSnapshot(
+      q,
+      (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type !== "added" && change.type !== "modified") return;
+
+          const data = change.doc.data();
+
+          // Someone is calling YOU
+          if (data.status === "calling") {
+            setIncomingCall({
+              ...data,
+              chatRoomId: change.doc.id,
+            } as IncomingCall);
+          }
+
+          // Call has reached a terminal state
+          if (
+            ["missed", "declined", "cancelled", "ended"].includes(data.status)
+          ) {
+            setIncomingCall(null);
+            setInCall(false);
+            setMyCall(false);
+            setCalleeInfo(null);
+          }
+        });
+      },
+      (err) => console.error( err.code)
+    );
+
+    return () => unsub();
+  }, [user]);
 
   /* ── Outgoing call doc listener (scoped to active call room) ── */
   useEffect(() => {
     if (!callRoomId || !user) return
 
-    const unsub = onSnapshot(doc(db, 'Calls', callRoomId), (snap) => {
-      if (!snap.exists()) return
-      const data = snap.data()
+    const unsub = onSnapshot(
+      doc(db, "Calls", callRoomId),
+      (snap) => {
+        if (!snap.exists()) return;
+        const data = snap.data();
 
-      if (data.callerId !== user) return
+        if (data.callerId !== user) return;
 
-      if (data.status === 'calling') {
-        setMyCall(true)
-      }
+        if (data.status === "calling") {
+          setMyCall(true);
+        }
 
-      if (data.status === 'accepted') {
-        setIncomingCall(prev => ({ ...prev, chatRoomId: callRoomId } as IncomingCall))
-        setInCall(true)
-        setMyCall(false)
-      }
+        if (data.status === "accepted") {
+          setIncomingCall(
+            (prev) => ({ ...prev, chatRoomId: callRoomId } as IncomingCall)
+          );
+          setInCall(true);
+          setMyCall(false);
+        }
 
-      if (['missed', 'declined', 'cancelled', 'ended'].includes(data.status)) {
-        setMyCall(false)
-        setInCall(false)
-        setIncomingCall(null)
-        setCalleeInfo(null)
-      }
-    })
+        if (
+          ["missed", "declined", "cancelled", "ended"].includes(data.status)
+        ) {
+          setMyCall(false);
+          setInCall(false);
+          setIncomingCall(null);
+          setCalleeInfo(null);
+        }
+      },
+      (err) => console.error(err.code)
+    );
 
     return () => unsub()
   }, [callRoomId, user])
@@ -457,6 +472,7 @@ function App() {
           user={user}
           setIncomingCall={setIncomingCall}
           onCancel={handleMyCallCancel}
+          calleeId={calleeInfo?.uid}
         />
       )}
 
@@ -469,8 +485,9 @@ function App() {
             userName={userData.displayName || userData.email}
             callType={incomingCall?.callType || callTypeState}
             callerID={incomingCall?.callerId || userData.uid}
-            calleeID={incomingCall?.callerId ? userData.uid : calleeInfo?.uid}
+            calleeID={calleeInfo?.uid}
             onClose={handleCallClose}
+
           />
         </div>
       )}

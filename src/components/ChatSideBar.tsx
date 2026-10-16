@@ -68,7 +68,9 @@ function useUnreadCount(db, chatId, currentUid) {
             return m.senderId !== currentUid && !m.readBy?.includes(currentUid);
           }).length
         );
-      }
+      },
+      (err) =>
+        console.error( err.code)
     );
     return () => unsub();
   }, [chatId, currentUid]);
@@ -99,7 +101,8 @@ function useTotalUnread(db, chats, currentUid) {
             return m.senderId !== currentUid && !m.readBy?.includes(currentUid);
           }).length;
           setTotal(Object.values(counts).reduce((a, b) => a + b, 0));
-        }
+        },
+        (err) => console.error( err.code)
       );
     });
 
@@ -122,18 +125,22 @@ function useUnreadMissedCalls(db, currentUid) {
 
     const q = query(
       collection(db, "CallHistory"),
-      where("participants", "array-contains", currentUid),
+      where("participants", "array-contains", currentUid),where("forUserId", "==", currentUid),
       where("status", "==", "Missed Call")
     );
 
-    const unsub = onSnapshot(q, (snap) => {
-      const unread = snap.docs.filter((d) => {
-        const readBy = d.data().readBy ?? [];
-        return !readBy.includes(currentUid);
-      });
-      setCount(unread.length);
-      setUnreadIds(unread.map((d) => d.id));
-    });
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const unread = snap.docs.filter((d) => {
+          const readBy = d.data().readBy ?? [];
+          return !readBy.includes(currentUid);
+        });
+        setCount(unread.length);
+        setUnreadIds(unread.map((d) => d.id));
+      },
+      (err) => console.error( err.code)
+    );
 
     return () => unsub();
   }, [db, currentUid]);

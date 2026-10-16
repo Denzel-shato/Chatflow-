@@ -43,12 +43,16 @@ export default function useUserContacts() {
       where('participants', 'array-contains', user.uid),
       orderBy('messageAt', 'desc')
     )
-    const unsub = onSnapshot(q, (snap) => {
-      queryClient.setQueryData(
-        ['chats', user.uid],
-        snap.docs.map(d => ({ ...d.data(), id: d.id }))
-      )
-    })
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        queryClient.setQueryData(
+          ["chats", user.uid],
+          snap.docs.map((d) => ({ ...d.data(), id: d.id }))
+        );
+      },
+      (err) => console.error("snap shot error 9", err.code)
+    );
     return () => unsub()
   }, [user, queryClient])
 

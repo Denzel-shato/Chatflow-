@@ -14,6 +14,7 @@ import {
   updateDoc,
   serverTimestamp,
   arrayUnion,
+  addDoc,
 } from "firebase/firestore";
 import { getDatabase, onValue, ref } from "firebase/database";
 
@@ -149,7 +150,7 @@ export default function Messages({
   const chats: RoomType[] = data ?? [];
   const { response, status } = useChatroom({ chatId, uid, contactsUid });
   const userChat: UserChat[] = response ?? [];
-  const { messages } = useMessagesListerner({ chatId });
+  const { messages } = useMessagesListerner({ chatId});
   const noChats = !isLoading && chats.length === 0 ? "No chats yet" : "";
 
   /* ── UI state ── */
@@ -225,19 +226,24 @@ export default function Messages({
   ───────────────────────────────────────── */
   useEffect(() => {
     if (!chatId || userData.length === 0) return;
+    const q = query(collection(db, "Calls"), where("chatId", "==", chatId) , where("status", "==", "calling"),where("calleeId", "==", userData[0].uid));
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        snap.docChanges().forEach((change) => {
+          if (change.type !== "added" && change.type !== "modified") return;
+          const data = change.doc.data();
 
-    const unsub = onSnapshot(doc(db, "Calls", chatId), (snap) => {
-      if (!snap.exists()) return;
-      const data = snap.data();
-      if (data.callerId !== userData[0].uid && data.status === "calling") {
-        // bubble up to global incoming call handler
-      }
-      if (data.status === "ended") {
-        setGlobalInCall?.(false);
-      }
-    });
-
-    return () => unsub();
+          if (data.callerId !== userData[0].uid && data.status === "calling") {
+            // bubble up to global incoming call handler
+          }
+          if (data.status === "ended") {
+            setGlobalInCall?.(false);
+          }
+        });
+      },
+      (err) => console.error(err.code)
+    );
   }, [chatId]);
 
   /* ─────────────────────────────────────────
@@ -350,11 +356,15 @@ export default function Messages({
       });
     }
 
-    const unsub = onSnapshot(q, (snapshot) => {
-      if (snapshot.empty) return;
-      setChatId(id);
-      unsub();
-    });
+    const unsub = onSnapshot(
+      q,
+      (snapshot) => {
+        if (snapshot.empty) return;
+        setChatId(id);
+        unsub();
+      },
+      (err) => console.error("snap shot error 6", err.code)
+    );
   };
 
   const backToChats = () => {
@@ -364,7 +374,8 @@ export default function Messages({
   };
 
   const startCall = async (callType: string) => {
-    await setDoc(doc(db, "Calls", chatId), {
+   const docRef =  await addDoc(collection(db, "Calls"), {
+      chatId,
       callerId: userData[0].uid,
       calleeId: otherUserData?.uid,
       callerName: userData[0].displayName,
@@ -372,11 +383,12 @@ export default function Messages({
       status: "calling",
       callType,
     });
-    setGlobalCallRoomId?.(chatId);
+    setGlobalCallRoomId?.(docRef.id);
     setGlobalCallType?.(callType);
     setGlobalCalleeInfo?.({
       name: otherUserData?.name || otherUserData?.displayName || "",
       photoURL: otherUserData?.photoURL || "",
+      uid: otherUserData?.uid || "",
     });
   };
 

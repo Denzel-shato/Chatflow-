@@ -33,22 +33,27 @@ const q = query(
     where('participants', 'array-contains', uid)
 )
 let valueUnsub;
-const unsub = onSnapshot(q, (snap) => {
-    if (snap.empty) return
-    const data     = snap.docs.map(d => ({ ...d.data() }))
-    const other    = data[0].participantsInfo.find(p => p.uid !== uid)
-    queryClient.setQueryData(['chatRoom',chatId],data);
+const unsub = onSnapshot(
+  q,
+  (snap) => {
+    if (snap.empty) return;
+    const data = snap.docs.map((d) => ({ ...d.data() }));
+    const other = data[0].participantsInfo.find((p) => p.uid !== uid);
+    queryClient.setQueryData(["chatRoom", chatId], data);
 
     /* Realtime presence */
     if (contactsUid) {
-    if(valueUnsub) valueUnsub()
-    const rtdb   = getDatabase()
-    const statusRef = ref(rtdb, `status/${contactsUid}`)
-     valueUnsub = onValue(statusRef, (snap) => {
-        if (snap.val()) queryClient.setQueryData(['status',contactsUid],snap.val())
-    })
+      if (valueUnsub) valueUnsub();
+      const rtdb = getDatabase();
+      const statusRef = ref(rtdb, `status/${contactsUid}`);
+      valueUnsub = onValue(statusRef, (snap) => {
+        if (snap.val())
+          queryClient.setQueryData(["status", contactsUid], snap.val());
+      });
     }
-})
+  },
+  (err) => console.error("snap shot error 7", err.code)
+);
 
 return () =>{unsub() ; if(valueUnsub)valueUnsub()}
 }, [chatId, uid, contactsUid, queryClient])

@@ -8,7 +8,8 @@ import {
   addDoc,
   collection,
 } from "firebase/firestore";
-
+import { getAuth } from "firebase/auth";
+const auth = getAuth();
 const db = getFirestore();
 
 /* ─── Design tokens ─── */
@@ -222,19 +223,27 @@ const CreateRoom = ({
         hasWrittenHistory.current = true;
         try {
           if (durationRef.current > 0) {
-            await addDoc(collection(db, "CallHistory"), {
-              roomID,
-              callerID: callerID || userID,
-              callType,
-              duration: durationRef.current,
-              participants: [otherUID, userID].filter(Boolean),
-              status: "answered",
-              timestamp: serverTimestamp(),
-            });
+           const base = {
+             roomID,
+             callerId: callerID || userID,
+             callType,
+             duration: durationRef.current,
+             participants: [calleeID, userID].filter(Boolean),
+             status: "answered",
+             timestamp: serverTimestamp(),
+           };
+           await addDoc(collection(db, "CallHistory"), {
+             ...base,
+             forUserId: callerID || userID,
+           });
+           await addDoc(collection(db, "CallHistory"), {
+             ...base,
+             forUserId: calleeID,
+           });
           }
           await updateDoc(doc(db, "Calls", roomID), { status: "ended" });
         } catch (e) {
-          console.error("CreateRoom: failed to save call history:", e);
+          console.error("CreateRoom: failed to save call history:", e.message);
         }
       }
 
@@ -242,7 +251,7 @@ const CreateRoom = ({
       updateRemoteUsers([]);
       if (callOnClose) onClose();
     },
-    [onClose, roomID, userID, callerID, callType, otherUID, updateRemoteUsers]
+    [onClose, roomID, userID, callerID, callType, calleeID, updateRemoteUsers]
   );
 
   /* ════════════════════════════════════════
