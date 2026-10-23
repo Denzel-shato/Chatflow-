@@ -751,7 +751,7 @@ const TECH_STACK = [
   {
     icon: FeatureIcons.lock,
     title: "TypeScript",
-    desc: "Type-safe end to end",
+    desc: "For better data handling",
   },
 ];
 
